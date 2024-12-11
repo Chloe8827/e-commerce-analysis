@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class ECommerceAnalyzer:
     """Main class for e-commerce data analysis."""
 
-    def __init__(self, data_path: str = 'src/data/data/'):
+    def __init__(self, data_path: str = '../data/'):
         self.data_path = Path(data_path)
         self.results_path = Path('results')
         self.results_path.mkdir(exist_ok=True)
@@ -45,8 +45,8 @@ class ECommerceAnalyzer:
         logger.info("Loading preprocessed data")
 
         # 直接从processed文件夹加载数据
-        self.customers_df = pd.read_csv(self.data_path / 'customers_processed.csv')
-        self.transactions_df = pd.read_csv(self.data_path / 'transactions_processed.csv')
+        self.customers_df = pd.read_csv(self.data_path / 'processed/customers_processed.csv')
+        self.transactions_df = pd.read_csv(self.data_path / 'processed/transactions_processed.csv')
 
         logger.info(f"Loaded {len(self.customers_df)} customers and {len(self.transactions_df)} transactions")
 
@@ -65,6 +65,83 @@ class ECommerceAnalyzer:
 
         return self.customers_df, self.transactions_df
 
+    # 在 ECommerceAnalyzer 类中添加以下方法
+
+    def _plot_segment_profiles(self, segment_profiles: Dict):
+        """可视化客户分群结果."""
+        plt.figure(figsize=(15, 10))
+
+        # 绘制每个分群的关键指标
+        metrics = ['size', 'avg_age', 'avg_total_spend', 'avg_transaction_count', 'avg_transaction_value']
+        n_metrics = len(metrics)
+
+        for i, metric in enumerate(metrics, 1):
+            plt.subplot(2, 3, i)
+            values = [profiles[metric] for profiles in segment_profiles.values()]
+            segments = list(segment_profiles.keys())
+
+            plt.bar(segments, values)
+            plt.title(f'Segment Comparison: {metric}')
+            plt.xticks(rotation=45)
+            if metric in ['avg_total_spend', 'avg_transaction_value']:
+                plt.ylabel('Amount ($)')
+
+        plt.tight_layout()
+        plt.savefig(self.results_path / 'segment_profiles.png')
+        plt.close()
+
+    def _plot_sales_prediction(self, actual: pd.Series, predictions: np.ndarray):
+        """可视化销售预测结果."""
+        plt.figure(figsize=(15, 6))
+
+        dates = pd.date_range(end=pd.Timestamp('2024-12-11'), periods=len(predictions))
+
+        plt.plot(dates, actual[-len(predictions):], label='Actual', color='blue')
+        plt.plot(dates, predictions, label='Predicted', color='red', linestyle='--')
+
+        plt.title('Sales Prediction - Last 30 Days')
+        plt.xlabel('Date')
+        plt.ylabel('Sales Amount ($)')
+        plt.legend()
+        plt.grid(True)
+
+        plt.tight_layout()
+        plt.savefig(self.results_path / 'sales_prediction.png')
+        plt.close()
+
+    def _plot_ltv_distribution(self, predictions: np.ndarray):
+        """可视化客户终身价值预测分布."""
+        plt.figure(figsize=(10, 6))
+
+        sns.histplot(predictions, bins=50, color='skyblue')
+        plt.axvline(np.mean(predictions), color='red', linestyle='--',
+                    label=f'Mean: ${np.mean(predictions):,.2f}')
+        plt.axvline(np.median(predictions), color='green', linestyle='--',
+                    label=f'Median: ${np.median(predictions):,.2f}')
+
+        plt.title('Predicted Customer LTV Distribution')
+        plt.xlabel('Predicted Lifetime Value ($)')
+        plt.ylabel('Number of Customers')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.savefig(self.results_path / 'ltv_distribution.png')
+        plt.close()
+
+    def _plot_feature_importance(self, feature_importance: pd.DataFrame, title: str):
+        """可视化特征重要性."""
+        plt.figure(figsize=(10, 6))
+
+        feature_importance.sort_values('importance', ascending=True).plot(
+            kind='barh', x='feature', y='importance'
+        )
+
+        plt.title(f'Feature Importance: {title}')
+        plt.xlabel('Importance Score')
+
+        plt.tight_layout()
+        plt.savefig(self.results_path / f'{title.lower().replace(" ", "_")}_feature_importance.png')
+        plt.close()
     def perform_customer_segmentation(self) -> Dict:
         """执行客户分群分析."""
         logger.info("Performing customer segmentation")
