@@ -54,4 +54,4 @@ Analysis results are saved in the `results/` directory:
 MIT
 
 ## Contact
-[Your Name] - [Your Email]
+chuqian - chloe.c.chuqian@gmail.com
